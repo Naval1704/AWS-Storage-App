@@ -3,6 +3,7 @@ import 'package:amplify_authenticator/amplify_authenticator.dart';
 import 'package:amplify_core/amplify_core.dart';
 import 'package:amplify_secure_storage/amplify_secure_storage.dart';
 import 'package:amplify_storage_s3/amplify_storage_s3.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:new_aws_app/amplifyconfiguration.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +12,9 @@ import 'package:path_provider/path_provider.dart';
 
 final AmplifyLogger _logger = AmplifyLogger('MyStorageApp');
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await GetStorage.init();
   AmplifyLogger().logLevel = LogLevel.debug;
   runApp(
     const MyApp(
@@ -175,7 +178,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // download file on mobile
   Future<void> downloadFileMobile(String key) async {
     final documentsDir = await getApplicationDocumentsDirectory();
-    final filepath = '${documentsDir.path}/example.txt';
+    final filename = key.split('/').last;
+    final filepath = '${documentsDir.path}/$filename';
     try {
       final result = await Amplify.Storage.downloadFile(
         key: key,
@@ -186,20 +190,53 @@ class _HomeScreenState extends State<HomeScreen> {
       ).result;
 
       safePrint('Downloaded file is located at: ${result.localFile.path}');
+
+      // Handle the downloaded file based on its type (generic, image, video)
+      if (filename.endsWith('.jpg') ||
+          filename.endsWith('.png') ||
+          filename.endsWith('.jpeg')) {
+        // Handle image file
+        // Example: Display the image using Flutter's Image.file widget
+        // Image.file(File(result.localFile.path));
+      } else if (filename.endsWith('.mp4') || filename.endsWith('.mov')) {
+        // Handle video file
+        // Example: Play the video using Flutter's video_player package
+        // VideoPlayerController.file(File(result.localFile.path));
+      } else {
+        // Handle other file types if needed
+      }
     } on StorageException catch (e) {
       safePrint(e.message);
     }
   }
 
-  // download file on web
+// download file on web
   Future<void> downloadFileWeb(String key) async {
+    final filename =
+        key.split('/').last; // Extracting the filename from the key
     try {
-      await Amplify.Storage.downloadFile(
+      final result = await Amplify.Storage.downloadFile(
         key: key,
-        localFile: AWSFile.fromPath(key),
+        localFile: AWSFile.fromPath(filename),
         onProgress: (p0) => _logger
             .debug('Progress: ${(p0.transferredBytes / p0.totalBytes) * 100}%'),
       ).result;
+
+      // Handle the downloaded file based on its type (generic, image, video)
+      if (filename.endsWith('.jpg') ||
+          filename.endsWith('.png') ||
+          filename.endsWith('.jpeg')) {
+        // Handle image file
+        // Example: Display the image using Flutter's Image.network widget
+        // Image.network(result.url);
+      } else if (filename.endsWith('.mp4') || filename.endsWith('.mov')) {
+        // Handle video file
+        // Example: Play the video using Flutter's video_player package
+        // VideoPlayerController.network(result.url);
+      } else {
+        // Handle other file types if needed
+      }
+
       await _listAllPublicFiles();
     } on StorageException catch (e) {
       _logger.error('Download error - ${e.message}');
@@ -256,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Amplify Storage Example'),
+        title: const Text('Crop Doctor'),
       ),
       body: Stack(
         children: [
@@ -288,9 +325,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     leading: IconButton(
                       icon: const Icon(Icons.download),
                       onPressed: () {
-                        zIsWeb
-                            ? downloadFileWeb(item.key)
-                            : downloadFileMobile(item.key);
+                        // zIsWeb
+                        // ? downloadFileWeb(item.key)
+                        // getUrl(
+                        //     key: item.key,
+                        //     accessLevel: StorageAccessLevel.guest);
+                        downloadFileMobile(item.key);
                       },
                     ),
                   );
