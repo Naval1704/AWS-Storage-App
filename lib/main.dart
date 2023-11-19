@@ -175,17 +175,19 @@ class _HomeScreenState extends State<HomeScreen> {
   // download file on mobile
   Future<void> downloadFileMobile(String key) async {
     final documentsDir = await getApplicationDocumentsDirectory();
-    final filepath = '${documentsDir.path}/$key';
+    final filepath = '${documentsDir.path}/example.txt';
     try {
-      await Amplify.Storage.downloadFile(
+      final result = await Amplify.Storage.downloadFile(
         key: key,
         localFile: AWSFile.fromPath(filepath),
-        onProgress: (p0) => _logger
-            .debug('Progress: ${(p0.transferredBytes / p0.totalBytes) * 100}%'),
+        onProgress: (progress) {
+          safePrint('Fraction completed: ${progress.fractionCompleted}');
+        },
       ).result;
-      await _listAllPublicFiles();
+
+      safePrint('Downloaded file is located at: ${result.localFile.path}');
     } on StorageException catch (e) {
-      _logger.error('Download error - ${e.message}');
+      safePrint(e.message);
     }
   }
 
